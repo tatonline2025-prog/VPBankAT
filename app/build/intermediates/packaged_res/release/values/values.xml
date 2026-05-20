@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="accessibility_service_description">Tự động điền MKH và nhấn các nút trong VPBank để thanh toán hóa đơn điện hàng loạt.</string>
-    <string name="accessibility_service_label">VPBank Auto Bill Payment</string>
-    <string name="app_name">VPBank Controller</string>
-</resources>

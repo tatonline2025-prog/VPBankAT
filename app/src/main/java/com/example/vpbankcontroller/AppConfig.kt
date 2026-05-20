@@ -69,6 +69,7 @@ object AppConfig {
     // ── SharedPreferences ────────────────────────────────────────────────────
     const val PREFS_NAME             = "vpbank_controller"
     const val KEY_MKH_LIST           = "mkh_list"
+    const val KEY_MKH_DRAFT          = "mkh_draft"
     const val KEY_CURRENT_INDEX      = "current_index"
     const val KEY_IS_RUNNING         = "is_running"
     const val KEY_VPBANK_PACKAGE     = "vpbank_package"

@@ -1,4 +1,0 @@
-#Tue May 05 10:03:41 ICT 2026
-base.0=C\:\\Users\\Admin\\VPBankController\\app\\build\\intermediates\\dex\\release\\mergeDexRelease\\classes.dex
-renamed.0=classes.dex
-path.0=classes.dex

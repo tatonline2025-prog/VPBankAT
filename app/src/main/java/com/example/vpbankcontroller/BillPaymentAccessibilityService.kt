@@ -117,7 +117,7 @@ class BillPaymentAccessibilityService : AccessibilityService() {
         currentIndex = prefs.getInt(AppConfig.KEY_CURRENT_INDEX, 0)
 
         if (mkhList.isEmpty() || currentIndex >= mkhList.size) {
-            broadcastStatus(0, 0, "", "KhÃ´ng cÃ³ MKH nÃ o Ä‘á»ƒ xá»­ lÃ½")
+            broadcastStatus(0, 0, "", "Kh\u00f4ng c\u00f3 MKH n\u00e0o \u0111\u1ec3 x\u1eed l\u00fd")
             return
         }
 
@@ -132,7 +132,7 @@ class BillPaymentAccessibilityService : AccessibilityService() {
         state = PaymentState.IDLE
         handler.removeCallbacksAndMessages(null)
         prefs.edit().putBoolean(AppConfig.KEY_IS_RUNNING, false).apply()
-        broadcastStatus(currentIndex, mkhList.size, "", "ÄÃ£ dá»«ng")
+        broadcastStatus(currentIndex, mkhList.size, "", "\u0110\u00e3 d\u1eebng")
     }
 
     // â”€â”€ Poll loop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -241,8 +241,8 @@ class BillPaymentAccessibilityService : AccessibilityService() {
         )
         nodes.forEach { it.recycle() }
 
-        Log.d(tag, "ÄÃ£ nháº­p MKH: $mkh")
-        broadcastStatus(currentIndex + 1, mkhList.size, mkh, "Äang nháº­p MKH: $mkh")
+        Log.d(tag, "\u0110\u00e3 nh\u1eadp MKH: $mkh")
+        broadcastStatus(currentIndex + 1, mkhList.size, mkh, "\u0110ang nh\u1eadp MKH: $mkh")
 
         retryCount = 0
         state      = PaymentState.CLICK_TIEP_TUC_1
@@ -253,7 +253,7 @@ class BillPaymentAccessibilityService : AccessibilityService() {
     private fun handleTiepTuc1(root: AccessibilityNodeInfo) {
         if (clickByText(root, AppConfig.TEXT_BTN_TIEP_TUC)) {
             Log.d(tag, "Clicked Tiáº¿p tá»¥c 1")
-            broadcastStatus(currentIndex + 1, mkhList.size, mkhList[currentIndex], "Äang tra cá»©u hÃ³a Ä‘Æ¡nâ€¦")
+            broadcastStatus(currentIndex + 1, mkhList.size, mkhList[currentIndex], "\u0110ang tra c\u1ee9u h\u00f3a \u0111\u01a1n\u2026")
             retryCount = 0
             state      = PaymentState.WAIT_INVOICE_SCREEN
             handler.postDelayed(pollRunnable, AppConfig.DELAY_AFTER_CLICK_MS)
@@ -279,7 +279,7 @@ class BillPaymentAccessibilityService : AccessibilityService() {
         // KhÃ´ng cÃ³ popup â†’ báº¥m Tiáº¿p tá»¥c
         if (clickByText(root, AppConfig.TEXT_BTN_TIEP_TUC)) {
             Log.d(tag, "Clicked Tiáº¿p tá»¥c 2 (invoice screen)")
-            broadcastStatus(currentIndex + 1, mkhList.size, mkhList[currentIndex], "Äang xÃ¡c nháº­n hÃ³a Ä‘Æ¡nâ€¦")
+            broadcastStatus(currentIndex + 1, mkhList.size, mkhList[currentIndex], "\u0110ang x\u00e1c nh\u1eadn h\u00f3a \u0111\u01a1n\u2026")
             retryCount = 0
             state      = PaymentState.CLICK_XAC_NHAN
             handler.postDelayed(pollRunnable, AppConfig.DELAY_AFTER_CLICK_MS)
@@ -304,7 +304,7 @@ class BillPaymentAccessibilityService : AccessibilityService() {
     private fun handleTiepTuc2(root: AccessibilityNodeInfo) {
         if (clickByText(root, AppConfig.TEXT_BTN_TIEP_TUC)) {
             Log.d(tag, "Clicked Tiáº¿p tá»¥c sau popup")
-            broadcastStatus(currentIndex + 1, mkhList.size, mkhList[currentIndex], "Äang xÃ¡c nháº­nâ€¦")
+            broadcastStatus(currentIndex + 1, mkhList.size, mkhList[currentIndex], "\u0110ang x\u00e1c nh\u1eadn\u2026")
             retryCount = 0
             state      = PaymentState.CLICK_XAC_NHAN
             handler.postDelayed(pollRunnable, AppConfig.DELAY_AFTER_CLICK_MS)
@@ -324,7 +324,7 @@ class BillPaymentAccessibilityService : AccessibilityService() {
 
         if (clickByText(root, AppConfig.TEXT_BTN_XAC_NHAN)) {
             Log.d(tag, "Clicked XÃ¡c nháº­n")
-            broadcastStatus(currentIndex + 1, mkhList.size, mkhList[currentIndex], "Äang nháº­p PIN Smart OTPâ€¦")
+            broadcastStatus(currentIndex + 1, mkhList.size, mkhList[currentIndex], "\u0110ang nh\u1eadp PIN Smart OTP\u2026")
             retryCount   = 0
             pinCharIndex = 0
             state        = PaymentState.INPUT_SMART_OTP_PIN
@@ -342,7 +342,7 @@ class BillPaymentAccessibilityService : AccessibilityService() {
             Log.e(tag, "PIN khÃ´ng há»£p lá»‡: '$pin' â€“ dá»«ng")
             stopAutomation()
             broadcastStatus(currentIndex, mkhList.size, mkhList[currentIndex],
-                "â›” PIN Smart OTP chÆ°a há»£p lá»‡. Vui lÃ²ng nháº­p 6 chá»¯ sá»‘ rá»“i thá»­ láº¡i.")
+                "\u26d4 PIN Smart OTP ch\u01b0a h\u1ee3p l\u1ec7. Vui l\u00f2ng nh\u1eadp 6 ch\u1eef s\u1ed1 r\u1ed3i th\u1eed l\u1ea1i.")
             return
         }
 
@@ -384,7 +384,7 @@ class BillPaymentAccessibilityService : AccessibilityService() {
             advNodes.forEach { it.recycle() }
             if (clickByText(root, AppConfig.TEXT_BTN_XAC_NHAN_GD)) {
                 Log.d(tag, "Clicked XÃ¡c nháº­n giao dá»‹ch")
-                broadcastStatus(currentIndex + 1, mkhList.size, mkhList[currentIndex], "Äang chá» káº¿t quáº£â€¦")
+                broadcastStatus(currentIndex + 1, mkhList.size, mkhList[currentIndex], "\u0110ang ch\u1edd k\u1ebft qu\u1ea3\u2026")
                 retryCount = 0
                 state      = PaymentState.WAIT_SUCCESS
                 handler.postDelayed(pollRunnable, AppConfig.DELAY_AFTER_CLICK_MS)
@@ -408,9 +408,9 @@ class BillPaymentAccessibilityService : AccessibilityService() {
         }
         successNodes.forEach { it.recycle() }
 
-        Log.d(tag, "âœ“ ThÃ nh cÃ´ng MKH: ${mkhList[currentIndex]}")
+        Log.d(tag, "\u2713 Th\u00e0nh c\u00f4ng MKH: ${mkhList[currentIndex]}")
         broadcastStatus(currentIndex + 1, mkhList.size, mkhList[currentIndex],
-            "âœ“ ThÃ nh cÃ´ng: ${mkhList[currentIndex]}")
+            "\u2713 Th\u00e0nh c\u00f4ng: ${mkhList[currentIndex]}")
 
         retryCount = 0
         state      = PaymentState.CLICK_NEW_TX
@@ -433,7 +433,7 @@ class BillPaymentAccessibilityService : AccessibilityService() {
                     .putBoolean(AppConfig.KEY_IS_RUNNING, false)
                     .putInt(AppConfig.KEY_CURRENT_INDEX, 0)
                     .apply()
-                broadcastStatus(currentIndex, mkhList.size, "", "âœ… HoÃ n táº¥t ${mkhList.size} MKH!")
+                broadcastStatus(currentIndex, mkhList.size, "", "\u2705 Ho\u00e0n t\u1ea5t ${mkhList.size} MKH!")
             } else {
                 state = PaymentState.SELECT_ELEC_TYPE
                 handler.postDelayed(pollRunnable, AppConfig.DELAY_AFTER_CLICK_MS)
@@ -453,7 +453,7 @@ class BillPaymentAccessibilityService : AccessibilityService() {
             val skipped = if (currentIndex < mkhList.size) mkhList[currentIndex] else "?"
             Log.w(tag, "Bá» qua MKH: $skipped")
             broadcastStatus(currentIndex + 1, mkhList.size, skipped,
-                "âš  Bá» qua: $skipped (háº¿t láº§n thá»­ táº¡i $state)")
+                "\u26a0 B\u1ecf qua: $skipped (h\u1ebft l\u1ea7n th\u1eed t\u1ea1i $state)")
 
             currentIndex++
             retryCount   = 0

@@ -1,9 +1,9 @@
-#Tue May 05 02:21:12 ICT 2026
-base.2=C\:\\Users\\Admin\\VPBankController\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\7\\classes.dex
+#Wed May 20 16:11:32 ICT 2026
+base.2=C\:\\Users\\Admin\\VpBankControl\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\7\\classes.dex
 path.2=7/classes.dex
-base.1=C\:\\Users\\Admin\\VPBankController\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\0\\classes.dex
+base.1=C\:\\Users\\Admin\\VpBankControl\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\0\\classes.dex
 path.1=0/classes.dex
-base.0=C\:\\Users\\Admin\\VPBankController\\app\\build\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes.dex
+base.0=C\:\\Users\\Admin\\VpBankControl\\app\\build\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes.dex
 renamed.2=classes3.dex
 renamed.1=classes2.dex
 renamed.0=classes.dex

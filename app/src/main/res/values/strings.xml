@@ -1,5 +1,20 @@
 <resources>
     <string name="app_name">VPBank Controller</string>
     <string name="accessibility_service_label">VPBank Auto Bill Payment</string>
-    <string name="accessibility_service_description">Tự động điền MKH và nhấn các nút trong VPBank để thanh toán hóa đơn điện hàng loạt.</string>
+    <string name="accessibility_service_description">\u0054\u1ef1 \u0111\u1ed9ng \u0111i\u1ec1n MKH v\u00e0 nh\u1ea5n c\u00e1c n\u00fat trong VPBank \u0111\u1ec3 thanh to\u00e1n h\u00f3a \u0111\u01a1n \u0111i\u1ec7n h\u00e0ng lo\u1ea1t.</string>
+
+    <string name="title_auto_payment">\u0056\u0050\u0042\u0061\u006e\u006b \u0054\u1ef1 \u0110\u1ed9ng Thanh To\u00e1n \u0110i\u1ec7n</string>
+    <string name="label_vpbank_package">\u0050\u0061\u0063\u006b\u0061\u0067\u0065 \u0056\u0050\u0042\u0061\u006e\u006b \u004e\u0045\u004f:</string>
+    <string name="label_pin">\u0050\u0049\u004e Smart OTP (6 ch\u1eef s\u1ed1):</string>
+    <string name="label_pin_note">\u0050\u0049\u004e ch\u1ec9 l\u01b0u trong RAM, kh\u00f4ng ghi ra file.</string>
+    <string name="label_mkh_list">Danh s\u00e1ch MKH - m\u1ed7i d\u00f2ng m\u1ed9t m\u00e3:</string>
+    <string name="btn_import">TXT/CSV</string>
+    <string name="btn_open_vpbank">VPBank</string>
+    <string name="btn_start">B\u1eaft \u0111\u1ea7u</string>
+    <string name="btn_stop">D\u1eebng</string>
+    <string name="btn_auto_all">Auto All (1 ch\u1ea1m)</string>
+    <string name="security_checking">Security: checking...</string>
+    <string name="status_ready">S\u1eb5n s\u00e0ng</string>
+    <string name="label_event_log">Nh\u1eadt k\u00fd tr\u1ea1ng th\u00e1i</string>
+    <string name="event_log_empty">Ch\u01b0a c\u00f3 s\u1ef1 ki\u1ec7n.</string>
 </resources>

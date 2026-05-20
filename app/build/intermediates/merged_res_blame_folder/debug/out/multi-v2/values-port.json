@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.example.vpbankcontroller.app-mergeDebugResources-2:/values-port/values-port.xml",
+            "outputFile": "com.example.vpbankcontroller.app-mergeDebugResources-30:/values-port/values-port.xml",
             "map": [
                 {
-                    "source": "C:\\gh2\\caches\\8.10.2\\transforms\\28cb1f352ece284fa5a6cd2438a2c5cc\\transformed\\appcompat-1.6.1\\res\\values-port\\values-port.xml",
+                    "source": "C:\\Users\\Admin\\.gradle\\caches\\8.10.2\\transforms\\28cb1f352ece284fa5a6cd2438a2c5cc\\transformed\\appcompat-1.6.1\\res\\values-port\\values-port.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",
