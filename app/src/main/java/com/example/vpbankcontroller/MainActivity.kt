@@ -1,6 +1,7 @@
-package com.example.vpbankcontroller
+package com.example.vpbat
 
 import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -17,14 +18,17 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.ScrollView
+import androidx.appcompat.widget.SwitchCompat
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.doAfterTextChanged
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import org.json.JSONArray
 import org.xmlpull.v1.XmlPullParser
+import java.io.File
 import java.text.Normalizer
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -35,7 +39,9 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var etMkhList: EditText
     private lateinit var etVpbankPackage: EditText
+    private lateinit var etPin: EditText
     private lateinit var etSmartOtpPin: EditText
+    private lateinit var switchStickCredentials: SwitchCompat
     private lateinit var btnStart: Button
     private lateinit var btnStop: Button
     private lateinit var btnOpenApp: Button
@@ -50,7 +56,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var prefs: SharedPreferences
     private var pendingAutoAllResume = false
     private var isActivityVisible = false
+    private var isProgrammaticPackageUpdate = false
     private val eventLogLines = mutableListOf<String>()
+    private var latestAutomationLogPreview = ""
     private val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
     private val retryHandler = Handler(Looper.getMainLooper())
 
@@ -85,10 +93,27 @@ class MainActivity : AppCompatActivity() {
             progressBar.max      = if (total > 0) total else 1
             progressBar.progress = current
             addEventLog("Progress: $status ($current/$total)")
+            loadLatestAutomationLogPreview()
 
-            val finished = status.startsWith("\u2705") || status == "\u0110\u00e3 d\u1eebng" || status.startsWith("Ho\u00e0n t\u1ea5t")
+            val finished = status.startsWith("\u2705") ||
+                status.startsWith("\u0110\u00e3 d\u1eebng") ||
+                status.startsWith("Ho\u00e0n t\u1ea5t")
             btnStart.isEnabled = finished
             btnStop.isEnabled  = !finished
+        }
+    }
+
+    private val debugLogReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val line = intent.getStringExtra(AppConfig.EXTRA_LOG_LINE)?.trim().orEmpty()
+            if (line.isBlank()) return
+
+            latestAutomationLogPreview = buildString {
+                append("AUTO LOG REALTIME")
+                append("\n")
+                append(line)
+            }
+            refreshEventLogPanel()
         }
     }
 
@@ -100,7 +125,9 @@ class MainActivity : AppCompatActivity() {
 
         etMkhList        = findViewById(R.id.et_mkh_list)
         etVpbankPackage  = findViewById(R.id.et_vpbank_package)
+        etPin            = findViewById(R.id.et_pin)
         etSmartOtpPin    = findViewById(R.id.et_smart_otp_pin)
+        switchStickCredentials = findViewById(R.id.switch_stick_credentials)
         btnStart         = findViewById(R.id.btn_start)
         btnStop          = findViewById(R.id.btn_stop)
         btnOpenApp       = findViewById(R.id.btn_open_app)
@@ -114,6 +141,51 @@ class MainActivity : AppCompatActivity() {
 
         addEventLog("App opened")
 
+        etVpbankPackage.doAfterTextChanged { editable ->
+            if (isProgrammaticPackageUpdate) return@doAfterTextChanged
+            val pkg = editable?.toString()?.trim().orEmpty()
+            if (pkg.isNotEmpty()) {
+                persistVpbankPackage(pkg, "manual-edit")
+            }
+        }
+
+        switchStickCredentials.isChecked =
+            prefs.getBoolean(AppConfig.KEY_STICK_CREDENTIALS, true)
+
+        val defaultPin = "222333"
+        val defaultSmartOtp = "222222"
+        val savedPin = prefs.getString(AppConfig.KEY_PIN_VALUE, null)
+        val savedSmartOtp = prefs.getString(AppConfig.KEY_SMART_OTP_VALUE, null)
+
+        etPin.setText(if (savedPin.isNullOrBlank()) defaultPin else savedPin)
+        etSmartOtpPin.setText(if (savedSmartOtp.isNullOrBlank()) defaultSmartOtp else savedSmartOtp)
+
+        if (savedPin.isNullOrBlank() || savedSmartOtp.isNullOrBlank()) {
+            saveCredentialDraft()
+        }
+
+        switchStickCredentials.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean(AppConfig.KEY_STICK_CREDENTIALS, isChecked).apply()
+            if (isChecked) {
+                saveCredentialDraft()
+                addEventLog("Stick ON: saved PIN + Smart OTP")
+            } else {
+                addEventLog("Stick OFF")
+            }
+        }
+
+        etPin.doAfterTextChanged {
+            if (switchStickCredentials.isChecked) {
+                saveCredentialDraft()
+            }
+        }
+
+        etSmartOtpPin.doAfterTextChanged {
+            if (switchStickCredentials.isChecked) {
+                saveCredentialDraft()
+            }
+        }
+
         etVpbankPackage.setText(
             prefs.getString(AppConfig.KEY_VPBANK_PACKAGE, AppConfig.vpbankPackage)
         )
@@ -121,7 +193,9 @@ class MainActivity : AppCompatActivity() {
 
         // If stored package is missing or no longer installed, auto-detect VPBank app.
         val initialPkg = etVpbankPackage.text.toString().trim()
-        val isSelfPackage = initialPkg == packageName || initialPkg.contains("vpbankcontroller")
+        val isSelfPackage = initialPkg == packageName ||
+            initialPkg.contains("vpbankcontroller") ||
+            initialPkg.contains("vpbat")
         if (initialPkg.isEmpty() || !isPackageInstalled(initialPkg) || isSelfPackage) {
             detectAndFillVpbankPackage(showToast = false)
         }
@@ -137,12 +211,18 @@ class MainActivity : AppCompatActivity() {
         // Stop automation.
         btnStop.setOnClickListener {
             AppConfig.smartOtpPin = ""
-            prefs.edit().putBoolean(AppConfig.KEY_IS_RUNNING, false).apply()
+            pendingAutoAllResume = false
+            prefs.edit()
+                .putBoolean(AppConfig.KEY_IS_RUNNING, false)
+                .putInt(AppConfig.KEY_CURRENT_INDEX, 0)
+                .apply()
             LocalBroadcastManager.getInstance(this)
                 .sendBroadcast(Intent(AppConfig.ACTION_STOP))
             btnStart.isEnabled = true
             btnStop.isEnabled  = false
-            setMainStatus("\u0110\u00e3 d\u1eebng")
+            progressBar.progress = 0
+            tvProgress.text = "0 / 0"
+            setMainStatus("\u0110\u00e3 d\u1eebng - reset về bước 1")
         }
 
         // Scan and open VPBank app with visible status updates.
@@ -168,6 +248,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         isActivityVisible = true
         updateSecurityStatusBadge()
+        loadLatestAutomationLogPreview()
 
         if (pendingAutoAllResume) {
             addEventLog("Resume Auto All after returning to app")
@@ -178,12 +259,17 @@ class MainActivity : AppCompatActivity() {
             progressReceiver,
             IntentFilter(AppConfig.ACTION_PROGRESS)
         )
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+            debugLogReceiver,
+            IntentFilter(AppConfig.ACTION_DEBUG_LOG)
+        )
     }
 
     override fun onPause() {
         super.onPause()
         isActivityVisible = false
         LocalBroadcastManager.getInstance(this).unregisterReceiver(progressReceiver)
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(debugLogReceiver)
     }
 
     override fun onDestroy() {
@@ -285,11 +371,7 @@ class MainActivity : AppCompatActivity() {
             "\u0110ang kh\u1edfi \u0111\u1ed9ng\u2026"
         })
         addEventLog("Nh\u1eafc nh\u1edf: Kh\u00f4ng t\u1eaft m\u00e0n h\u00ecnh trong khi Auto \u0111ang ch\u1ea1y")
-        Toast.makeText(
-            this,
-            "L\u01b0u \u00fd: Kh\u00f4ng t\u1eaft m\u00e0n h\u00ecnh trong khi Auto \u0111ang ch\u1ea1y.",
-            Toast.LENGTH_LONG
-        ).show()
+        setMainStatus("\u26a0 Kh\u00f4ng t\u1eaft m\u00e0n h\u00ecnh trong khi Auto \u0111ang ch\u1ea1y!")
 
         launchApp(vpbankPkg, fromAction = "Start automation")
         LocalBroadcastManager.getInstance(this)
@@ -323,15 +405,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun ensureAccessibilityEnabled(): Boolean {
-        if (isAccessibilityServiceEnabled()) return true
+        // Service đã thực sự connect (onServiceConnected đã chạy) → OK
+        if (BillPaymentAccessibilityService.isConnected) return true
+
+        // Service có trong settings nhưng chưa bind (MIUI chưa gọi onServiceConnected)
+        if (isAccessibilityServiceEnabled()) {
+            Toast.makeText(
+                this,
+                "Dịch vụ Trợ năng đã bật và đang kết nối. Chờ 1-2 giây rồi bấm Bắt đầu lại.",
+                Toast.LENGTH_LONG
+            ).show()
+            addEventLog("Accessibility in settings but not connected")
+            setMainStatus("Trợ năng đang kết nối - vui lòng thử lại sau 1-2 giây")
+            return false
+        }
 
         Toast.makeText(
             this,
-            "Ch\u01b0a b\u1eadt Tr\u1ee3 n\u0103ng. V\u00e0o C\u00e0i \u0111\u1eb7t > Tr\u1ee3 n\u0103ng > VPBank Controller > B\u1eadt d\u1ecbch v\u1ee5.",
+            "Chưa bật Trợ năng. Vào Cài đặt > Trợ năng > VPBat > Bật dịch vụ.",
             Toast.LENGTH_LONG
         ).show()
         addEventLog("Accessibility not enabled")
-        setMainStatus("Thi\u1ebfu quy\u1ec1n Tr\u1ee3 n\u0103ng - \u0111ang m\u1edf C\u00e0i \u0111\u1eb7t")
+        setMainStatus("Thiếu quyền Trợ năng - đang mở Cài đặt")
         startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         return false
     }
@@ -416,6 +511,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun saveCredentialDraft() {
+        prefs.edit()
+            .putString(AppConfig.KEY_PIN_VALUE, etPin.text.toString().trim())
+            .putString(AppConfig.KEY_SMART_OTP_VALUE, etSmartOtpPin.text.toString().trim())
+            .apply()
+    }
+
     private fun updateSecurityStatusBadge() {
         val usbDebugOn = isUsbDebugEnabled()
         val developerOn = isDeveloperOptionsEnabled()
@@ -440,8 +542,7 @@ class MainActivity : AppCompatActivity() {
 
         val typedPackage = etVpbankPackage.text.toString().trim()
         if (typedPackage.isNotEmpty() && isPackageInstalled(typedPackage)) {
-            AppConfig.vpbankPackage = typedPackage
-            prefs.edit().putString(AppConfig.KEY_VPBANK_PACKAGE, typedPackage).apply()
+            persistVpbankPackage(typedPackage, "typed-valid")
             addEventLog("Using package from input: $typedPackage")
             return typedPackage
         }
@@ -473,18 +574,25 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (detected != null) {
+            isProgrammaticPackageUpdate = true
             etVpbankPackage.setText(detected)
-            AppConfig.vpbankPackage = detected
-            prefs.edit().putString(AppConfig.KEY_VPBANK_PACKAGE, detected).apply()
+            isProgrammaticPackageUpdate = false
+            persistVpbankPackage(detected, "auto-detect")
             setMainStatus("Detect VPBank: ${best?.label ?: "Unknown"} -> $detected")
             if (showToast) {
                 Toast.makeText(this, "\u0110\u00e3 t\u1ef1 detect app VPBank: $detected", Toast.LENGTH_LONG).show()
             }
-            addEventLog("Detected VPBank package: $detected")
+            addEventLog("Detected + saved VPBank package: $detected")
         } else {
             setMainStatus("Kh\u00f4ng t\u00ecm th\u1ea5y app VPBank tr\u00ean launcher")
         }
         return detected
+    }
+
+    private fun persistVpbankPackage(pkg: String, source: String) {
+        AppConfig.vpbankPackage = pkg
+        prefs.edit().putString(AppConfig.KEY_VPBANK_PACKAGE, pkg).commit()
+        addEventLog("Saved package [$source]: $pkg")
     }
 
     private fun detectVpbankCandidates(): List<VpbankCandidate> {
@@ -496,7 +604,9 @@ class MainActivity : AppCompatActivity() {
 
         launchableApps.orEmpty().forEach { info ->
             val packageName = info.activityInfo?.packageName ?: return@forEach
-            if (packageName == selfPackage || packageName.contains("vpbankcontroller")) return@forEach
+            if (packageName == selfPackage ||
+                packageName.contains("vpbankcontroller") ||
+                packageName.contains("vpbat")) return@forEach
             val appLabel = info.loadLabel(packageManager)?.toString().orEmpty()
             val score = scoreVpbankCandidate(packageName, appLabel)
             if (score <= 0) return@forEach
@@ -506,7 +616,9 @@ class MainActivity : AppCompatActivity() {
         // Fallback: include installed packages that can be launched but may not appear in launcher query.
         packageManager.getInstalledPackages(0).forEach { pkgInfo ->
             val packageName = pkgInfo.packageName
-            if (packageName == selfPackage || packageName.contains("vpbankcontroller")) return@forEach
+            if (packageName == selfPackage ||
+                packageName.contains("vpbankcontroller") ||
+                packageName.contains("vpbat")) return@forEach
             if (packageManager.getLaunchIntentForPackage(packageName) == null) return@forEach
 
             val appLabel = pkgInfo.applicationInfo?.loadLabel(packageManager)?.toString().orEmpty()
@@ -637,7 +749,40 @@ class MainActivity : AppCompatActivity() {
         while (eventLogLines.size > 25) {
             eventLogLines.removeAt(0)
         }
-        tvEventLog.text = eventLogLines.joinToString("\n")
+        refreshEventLogPanel()
+    }
+
+    private fun loadLatestAutomationLogPreview() {
+        val baseDir = getExternalFilesDir(null) ?: filesDir
+        val logDir = File(baseDir, "logs")
+        val latestLog = logDir.listFiles()
+            ?.filter { it.isFile && it.name.startsWith("vpbat_") && it.extension.equals("log", ignoreCase = true) }
+            ?.maxByOrNull { it.lastModified() }
+
+        latestAutomationLogPreview = if (latestLog == null) {
+            "AUTO LOG: chưa có file log"
+        } else {
+            val tail = runCatching { latestLog.readLines().takeLast(12) }.getOrDefault(emptyList())
+            buildString {
+                append("AUTO LOG: ${latestLog.name}")
+                if (tail.isNotEmpty()) {
+                    append("\n")
+                    append(tail.joinToString("\n"))
+                }
+            }
+        }
+        refreshEventLogPanel()
+    }
+
+    private fun refreshEventLogPanel() {
+        val sections = mutableListOf<String>()
+        if (eventLogLines.isNotEmpty()) {
+            sections.add(eventLogLines.joinToString("\n"))
+        }
+        if (latestAutomationLogPreview.isNotBlank()) {
+            sections.add(latestAutomationLogPreview)
+        }
+        tvEventLog.text = sections.joinToString("\n\n")
     }
 
     /**
@@ -726,11 +871,35 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean {
-        val service = "$packageName/${BillPaymentAccessibilityService::class.java.canonicalName}"
+        // MIUI/HyperOS keeps ACCESSIBILITY_ENABLED = 0 even for enabled third-party services.
+        // Only check the service list, not the global flag.
+        val expected = ComponentName(this, BillPaymentAccessibilityService::class.java)
+        val expectedClass = BillPaymentAccessibilityService::class.java.name
+        val expectedShortClass = ".${BillPaymentAccessibilityService::class.java.simpleName}"
+
         val enabled = Settings.Secure.getString(
             contentResolver,
             Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
         ) ?: return false
-        return enabled.split(":").any { it.equals(service, ignoreCase = true) }
+
+        return enabled
+            .split(":")
+            .asSequence()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .any { raw ->
+                val parsed = ComponentName.unflattenFromString(raw)
+                if (parsed != null) {
+                    val samePackage = parsed.packageName.equals(expected.packageName, ignoreCase = true)
+                    val sameClass = parsed.className.equals(expected.className, ignoreCase = true) ||
+                        parsed.className.equals(expectedClass, ignoreCase = true) ||
+                        parsed.className.equals("${expected.packageName}$expectedShortClass", ignoreCase = true)
+                    samePackage && sameClass
+                } else {
+                    // Fallback for malformed OEM strings that cannot be parsed by ComponentName.
+                    raw.equals("${expected.packageName}/$expectedClass", ignoreCase = true) ||
+                        raw.equals("${expected.packageName}/$expectedShortClass", ignoreCase = true)
+                }
+            }
     }
 }
