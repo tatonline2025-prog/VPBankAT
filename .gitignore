@@ -74,5 +74,6 @@ lint/generated/
 lint/outputs/xml/
 lint/tmp/
 
-# HTML docs (local only)
-*.html
+# Local debug artifacts
+dist/
+view.xml
